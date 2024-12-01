@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gtau namanya apa</title>
+  <title>Blok Grid</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,7 +13,7 @@
       justify-content: center;
       margin: 0;
       padding: 20px;
-      background-color: salmon;
+      background-color: aquamarine;
     }
 
     #canvas-container {
@@ -26,7 +26,7 @@
       border: 1px solid #ccc;
     }
 
-    button, input[type="file"] {
+    button, input[type="file"], select {
       margin-top: 20px;
       padding: 10px 20px;
       font-size: 16px;
@@ -38,81 +38,141 @@
   </style>
 </head>
 <body>
-  <h1>Tambahkan garis untuk gambar</h1>
+  <h1>Tambahkan Grid Blok </h1>
+  
+  <!-- Pilihan ukuran kertas dan orientasi -->
+  <select id="paper-size">
+    <option value="a4">A4</option>
+    <option value="f4">F4</option>
+    <option value="a3">A3</option>
+  </select>
+  
+  <select id="orientation">
+    <option value="portrait">Potrait</option>
+    <option value="landscape">Landscape</option>
+  </select>
+
   <input type="file" id="upload" accept="image/*">
+  
   <div id="canvas-container">
     <canvas id="image-canvas" width="794" height="1123"></canvas>
   </div>
-  <button id="download-btn" style="display:none;">Download Disini🔥</button>
+  
+  <button id="download-btn" style="display:none;">Unduh Gambar</button>
 
   <script>
     const uploadInput = document.getElementById('upload');
     const canvas = document.getElementById('image-canvas');
     const downloadBtn = document.getElementById('download-btn');
     const ctx = canvas.getContext('2d');
+    
+    let paperWidth = 794;  // Default A4 Width in px
+    let paperHeight = 1123; // Default A4 Height in px
+    const cmToPx = 37.7952755906; // 1 cm ~ 37.8 px (berdasarkan 96 DPI)
+    const blockSize = 4; // Ukuran blok grid 4x4 kotak kecil
+    const COLORS = ['black', 'red']; // Warna grid hitam dan merah
 
-    // Ukuran kertas A4 dalam piksel (96 DPI)
-    const lebar = 794; // 210 mm ~ 794 px
-    const tinggi = 1123; // 297 mm ~ 1123 px
+    // Ukuran kertas untuk A4, A3, F4
+    const paperSizes = {
+      a4: { width: 794, height: 1123 },
+      a3: { width: 1123, height: 1587 },
+      f4: { width: 827, height: 1169 }
+    };
+
+    // Pilihan orientasi: portrait atau landscape
+    document.getElementById('paper-size').addEventListener('change', updateCanvasSize);
+    document.getElementById('orientation').addEventListener('change', updateCanvasSize);
+
+    // Fungsi untuk mengupdate ukuran dan orientasi kanvas
+    function updateCanvasSize() {
+      const paperSize = document.getElementById('paper-size').value;
+      const orientation = document.getElementById('orientation').value;
+      
+      // Update dimensi kertas berdasarkan pilihan
+      paperWidth = paperSizes[paperSize].width;
+      paperHeight = paperSizes[paperSize].height;
+
+      // Jika orientasi landscape, tukar dimensi kertas
+      if (orientation === 'landscape') {
+        [paperWidth, paperHeight] = [paperHeight, paperWidth];
+      }
+
+      // Sesuaikan ukuran kanvas
+      canvas.width = paperWidth;
+      canvas.height = paperHeight;
+      
+      // Reset dan update gambar serta grid
+      if (uploadInput.files[0]) {
+        loadImage(uploadInput.files[0]);
+      }
+    }
 
     // Mengunggah gambar
     uploadInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file) {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            // Reset canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Menyesuaikan gambar ke ukuran A4
-            ctx.drawImage(img, 0, 0, lebar, tinggi);
-
-            // Menambahkan grid
-            drawGrid();
-
-            // Tampilkan tombol unduh
-            downloadBtn.style.display = 'inline-block';
-          };
-          img.src = e.target.result;
-        };
-
-        reader.readAsDataURL(file);
+        loadImage(file);
       }
     });
 
-    // Menambahkan grid pada gambar
+    // Memuat gambar ke dalam kanvas
+    function loadImage(file) {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Reset canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Menyesuaikan gambar ke ukuran kertas
+          ctx.drawImage(img, 0, 0, paperWidth, paperHeight);
+
+          // Menambahkan grid
+          drawGrid();
+
+          // Tampilkan tombol unduh
+          downloadBtn.style.display = 'inline-block';
+        };
+        img.src = e.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // Menambahkan grid blok 4x4 dengan warna bergantian
     function drawGrid() {
-      const cmToPx = 37.7952755906; // 1 cm ~ 37.8 px (berdasarkan 96 DPI)
       const { width, height } = canvas;
 
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 0.5;
+      for (let y = 0; y < height; y += blockSize * cmToPx) {
+        for (let x = 0; x < width; x += blockSize * cmToPx) {
+          // Tentukan warna blok berdasarkan posisi (pola catur)
+          const blockRow = Math.floor(y / (blockSize * cmToPx));
+          const blockCol = Math.floor(x / (blockSize * cmToPx));
+          const colorIndex = (blockRow + blockCol) % COLORS.length;
+          ctx.strokeStyle = COLORS[colorIndex];
+          ctx.lineWidth = 0.5;
 
-      // Gambar garis vertikal
-      for (let x = 0; x <= width; x += cmToPx) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-
-      // Gambar garis horizontal
-      for (let y = 0; y <= height; y += cmToPx) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
+          // Gambar grid dalam blok 4x4
+          for (let i = 0; i < blockSize; i++) {
+            for (let j = 0; j < blockSize; j++) {
+              ctx.strokeRect(
+                x + j * cmToPx, // Posisi x untuk setiap kotak kecil
+                y + i * cmToPx, // Posisi y untuk setiap kotak kecil
+                cmToPx,         // Lebar kotak
+                cmToPx          // Tinggi kotak
+              );
+            }
+          }
+        }
       }
     }
 
     // Mengunduh gambar dengan grid
     downloadBtn.addEventListener('click', () => {
       const link = document.createElement('a');
-      link.download = 'image_buatan_fadhil.png';
-      link.href = canvas.toDataURL();
+      link.download = 'grid-foto-by-fadhil.png';
+      link.href = canvas.toDataURL('image/png');
       link.click();
     });
   </script>
