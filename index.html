@@ -42,9 +42,10 @@
   
   <!-- Pilihan ukuran kertas dan orientasi -->
   <select id="paper-size">
+    <option value="a5">A5</option>
     <option value="a4">A4</option>
-    <option value="f4">F4</option>
     <option value="a3">A3</option>
+    <option value="f4">F4</option>
   </select>
   
   <select id="orientation">
@@ -76,7 +77,8 @@
     const paperSizes = {
       a4: { width: 794, height: 1123 },
       a3: { width: 1123, height: 1587 },
-      f4: { width: 827, height: 1169 }
+      a5: { width: 420, height: 595 },
+      f4: { width: 827, height: 1169 },
     };
 
     // Pilihan orientasi: portrait atau landscape
